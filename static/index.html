@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>能源电力科研工作台</title>
+<link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+<div id="app">
+  <aside id="sidebar">
+    <div class="brand">
+      <div class="brand-mark">⚡</div>
+      <div>
+        <div class="brand-name">科研电力工作台</div>
+        <div class="brand-sub">Energy × AI Research Workbench</div>
+      </div>
+    </div>
+    <nav class="nav">
+      <a class="nav-item" data-view="dashboard" href="#/dashboard">工作台</a>
+      <a class="nav-item" data-view="prompts" href="#/prompts">提示词库</a>
+      <a class="nav-item" data-view="settings" href="#/settings">模型设置</a>
+    </nav>
+    <div class="side-label">研究项目</div>
+    <div id="project-list"></div>
+    <div class="side-foot" id="model-status"></div>
+  </aside>
+
+  <main id="main"></main>
+</div>
+
+<!-- modal root -->
+<div id="modal-root"></div>
+
+<template id="tpl-dashboard">
+  <header class="page-head">
+    <div>
+      <h1>研究工作台</h1>
+      <p class="muted">从前期调研到论文投稿的全流程科研工作平台 · 能源电力数据 × AI</p>
+    </div>
+    <button class="btn primary" id="btn-new-project">+ 新建研究项目</button>
+  </header>
+  <div id="dash-projects" class="project-grid"></div>
+  <section class="hint-card">
+    <h3>使用流程</h3>
+    <ol class="flow">
+      <li><b>新建项目</b>：填写研究方向、核心问题与可用数据</li>
+      <li><b>按阶段推进</b>：调研 → 设计 → 实验 → 写作 → 投稿，每阶段有专用提示词</li>
+      <li><b>与 AI 协作</b>：在「模型设置」接入你的模型接口后即可对话与生成</li>
+      <li><b>沉淀产出</b>：把 AI 回答保存为项目文档，最后一键导出论文草稿</li>
+    </ol>
+  </section>
+</template>
+
+<template id="tpl-project">
+  <header class="page-head">
+    <div>
+      <h1 id="pj-title"></h1>
+      <p class="muted" id="pj-meta"></p>
+    </div>
+    <div class="head-actions">
+      <button class="btn" id="btn-edit-project">项目信息</button>
+      <button class="btn" id="btn-export">导出 Markdown</button>
+    </div>
+  </header>
+  <div class="stage-bar" id="stage-bar"></div>
+  <div class="workarea">
+    <div class="panel prompts-panel">
+      <div class="panel-title">本阶段提示词</div>
+      <div id="stage-prompts"></div>
+    </div>
+    <div class="panel chat-panel">
+      <div class="panel-title">AI 研究助手 <span class="muted" id="chat-model-tag"></span></div>
+      <div class="chat-scroll" id="chat-scroll"></div>
+      <div class="chat-input">
+        <textarea id="chat-text" rows="3" placeholder="输入消息或补充材料（选中提示词后此处可作为{输入内容}等参数）"></textarea>
+        <div class="chat-actions">
+          <button class="btn" id="btn-clear-chat">清空</button>
+          <button class="btn primary" id="btn-send">发送</button>
+        </div>
+      </div>
+    </div>
+    <div class="panel docs-panel">
+      <div class="panel-title">项目文档
+        <button class="btn small" id="btn-new-doc">+ 新建</button>
+      </div>
+      <div id="doc-list"></div>
+      <div class="doc-editor" id="doc-editor" hidden>
+        <input id="doc-title" placeholder="文档标题">
+        <select id="doc-section"></select>
+        <textarea id="doc-content" rows="14" placeholder="支持 Markdown"></textarea>
+        <div class="chat-actions">
+          <button class="btn danger" id="btn-del-doc">删除</button>
+          <button class="btn primary" id="btn-save-doc">保存</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</template>
+
+<template id="tpl-prompts">
+  <header class="page-head">
+    <div>
+      <h1>提示词库</h1>
+      <p class="muted">覆盖 调研 → 选题设计 → 实验 → 写作 → 投稿 全流程 · 已嵌入能源电力+AI 领域知识</p>
+    </div>
+    <button class="btn primary" id="btn-new-prompt">+ 新建提示词</button>
+  </header>
+  <div class="stage-bar" id="prompt-stage-bar"></div>
+  <div id="prompt-list"></div>
+</template>
+
+<template id="tpl-settings">
+  <header class="page-head"><div>
+    <h1>模型设置</h1>
+    <p class="muted">接入你自己的 AI 模型 —— 任何兼容 OpenAI Chat Completions 的接口即可</p>
+  </div></header>
+  <div class="settings-card">
+    <label>Base URL
+      <input id="m-base" placeholder="https://api.openai.com/v1 或 http://localhost:11434/v1">
+    </label>
+    <label>API Key
+      <input id="m-key" type="password" placeholder="sk-...（留空表示不修改已保存的 Key）">
+      <div class="muted small" id="m-key-hint"></div>
+    </label>
+    <label>模型名
+      <input id="m-model" placeholder="如 gpt-4o-mini / deepseek-chat / qwen-max / llama3.1">
+    </label>
+    <label>Temperature
+      <input id="m-temp" type="number" step="0.1" min="0" max="2">
+    </label>
+    <label>全局系统提示词（可选）
+      <textarea id="m-sysp" rows="4" placeholder="留空则使用内置的科研助手系统提示"></textarea>
+    </label>
+    <div class="chat-actions">
+      <span id="m-test-result" class="muted"></span>
+      <button class="btn" id="btn-test-model">测试连接</button>
+      <button class="btn primary" id="btn-save-model">保存</button>
+    </div>
+    <div class="muted small tips">
+      兼容示例：OpenAI <code>https://api.openai.com/v1</code> · DeepSeek <code>https://api.deepseek.com/v1</code> ·
+      通义千问 <code>https://dashscope.aliyuncs.com/compatible-mode/v1</code> ·
+      Moonshot <code>https://api.moonshot.cn/v1</code> · 智谱 <code>https://open.bigmodel.cn/api/paas/v4</code> ·
+      Ollama <code>http://localhost:11434/v1</code> · vLLM/One-API 自建网关同理。Key 仅保存在本平台数据库。
+    </div>
+  </div>
+</template>
+
+<script src="/static/app.js"></script>
+</body>
+</html>
